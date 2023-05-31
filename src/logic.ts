@@ -1,26 +1,118 @@
 import { Request, Response } from "express";
+import { IMovie, TMovieCreate, TMovieResult } from "./interfaces";
+import { QueryConfig } from "pg";
+import { client } from "./database";
+import format from "pg-format";
 
 //CREATE MOVIE:
-export const createMovie = (request: Request, response: Response): Response => {
-  return response.status(201).json();
+export const insertQueryCreateMovie = async (request: Request, response: Response): Promise<Response> => {
+  const { foundMovieByName } = response.locals;
+  const requestBody: TMovieCreate = request.body;
+
+  const queryString: string = `
+    INSERT INTO "movies"("name", "category", "duration", "price")
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;
+  `;
+
+  const queryConfig: QueryConfig = {
+    text: queryString,
+    values: Object.values(requestBody),
+  };
+
+  const queryResult: TMovieResult = await client.query(queryConfig);
+
+  const newMovie: IMovie = queryResult.rows[0];
+
+  return response.status(201).json(newMovie);
 };
 
 //READ ALL MOVIES:
-export const readAllMovies = (request: Request, response: Response): Response => {
-  return response.status(200).json();
+export const selectQueryReadAllMovies = async (request: Request, response: Response): Promise<Response> => {
+  const queryString: string = `
+    SELECT * FROM "movies";
+  `;
+  const queryResult: TMovieResult = await client.query(queryString);
+
+  const allMovies: IMovie[] = queryResult.rows;
+
+  return response.status(200).json(allMovies);
 };
 
 //READ MOVIE BY ID:
-export const readMovieById = (request: Request, response: Response): Response => {
-  return response.status(200).json();
+export const selectQueryReadMovieById = async (request: Request, response: Response): Promise<Response> => {
+  const { foundMovieById } = response.locals;
+
+  return response.status(200).json(foundMovieById);
 };
 
 // UPDATE MOVIE:
-export const updateMovie = (request: Request, response: Response): Response => {
-  return response.status(200).json();
+export const updateMovie = async (request: Request, response: Response): Promise<Response> => {
+  const { foundMovieByName, foundMovieById } = response.locals;
+  const { body, params } = request;
+
+  const updateColumns: string[] = Object.keys(body);
+  const updateValues: string[] = Object.values(body);
+
+  const queryTemplate: string = ` 
+  UPDATE "movies" 
+  SET (%I) = ROW (%L) 
+  WHERE id = $1
+  RETURNING *;
+  `;
+
+  const queryFormat: string = format(queryTemplate, updateColumns, updateValues);
+  const queryConfig: QueryConfig = {
+    text: queryFormat,
+    values: [params.id],
+  };
+  const queryResult: TMovieResult = await client.query(queryConfig);
+  const updatedMovie: IMovie = queryResult.rows[0];
+
+  return response.status(200).json(updatedMovie);
 };
 
 // DELETE MOVIE:
-export const deleteMovie = (request: Request, response: Response): Response => {
-  return response.status(204).json({ success: true });
+export const deleteMovie = async (request: Request, response: Response): Promise<Response> => {
+  const { foundMovieById } = response.locals;
+  const { body, params } = request;
+
+  const deleteColumns: string[] = Object.keys(body);
+  const deleteValues: string[] = Object.values(body);
+
+  const queryTemplate: string = ` 
+  DELETE FROM "movies" 
+  WHERE id = $1
+  RETURNING *;
+  `;
+
+  const queryFormat: string = format(queryTemplate, deleteColumns, deleteValues);
+  const queryConfig: QueryConfig = {
+    text: queryFormat,
+    values: [params.id],
+  };
+  const queryResult: TMovieResult = await client.query(queryConfig);
+  const deleteMovie: IMovie = queryResult.rows[0];
+
+  return response.status(204).json();
 };
+
+//READ MOVIE BY ID:
+// const { id } = request.params;
+
+// const queryString: string = `
+//   SELECT * FROM "movies" WHERE id= ${id};
+// `;
+// const queryResult: TMovieResult = await client.query(queryString);
+
+// const movieById: IMovie = queryResult.rows[0];
+
+// const findProductById: IMovie | undefined = queryResult.rows.find(
+//   (movie: IMovie): boolean => movie.id === movieById.id
+// );
+// console.log(findProductById);
+
+// if (!findProductById) {
+//   const error: string = "Movie not found!";
+//   return response.status(404).json({ error });
+// }

@@ -1,21 +1,32 @@
 import express, { Application } from "express";
-import { createMovie, deleteMovie, readAllMovies, readMovieById, updateMovie } from "./logic";
+import {
+  deleteMovie,
+  insertQueryCreateMovie,
+  selectQueryReadAllMovies,
+  selectQueryReadMovieById,
+  updateMovie,
+} from "./logic";
+import { startDatabase } from "./database";
+import { idAlreadyExistsMiddleware, nameAlreadyExistsMiddleware } from "./middlewares";
 
 const app: Application = express();
 app.use(express.json());
 
 // Endpoints da app:
-app.post("/movies", createMovie);
+app.post("/movies", nameAlreadyExistsMiddleware, insertQueryCreateMovie);
 
-app.get("movies", readAllMovies);
+app.get("/movies", selectQueryReadAllMovies);
 
-app.get("/movies/:id", readMovieById);
+app.get("/movies/:id", idAlreadyExistsMiddleware, selectQueryReadMovieById);
 
-app.patch("/movies/:id", updateMovie);
+app.patch("/movies/:id", nameAlreadyExistsMiddleware, idAlreadyExistsMiddleware, updateMovie);
 
-app.delete("/movies/:id", deleteMovie);
+app.delete("/movies/:id", idAlreadyExistsMiddleware, deleteMovie);
 
-// Server:
-const port: number = 3000;
-const runningMsg: string = `Server running on http://localhost:${port}`;
-app.listen(port, () => console.log(runningMsg));
+// Server e conectando ao banco de dados:
+const PORT: number = 3000;
+const runningMsg: string = `Server running on http://localhost:${PORT}`;
+app.listen(PORT, async () => {
+  await startDatabase();
+  console.log(runningMsg);
+});
