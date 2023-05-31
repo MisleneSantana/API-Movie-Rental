@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import { IMovie, TMovieResult } from "./interfaces";
-import { client } from "./database";
-import { QueryConfig } from "pg";
+import { NextFunction, Request, Response } from 'express';
+import { IMovie, TMovieResult } from './interfaces';
+import { client } from './database';
+import { QueryConfig } from 'pg';
 
 export const nameAlreadyExistsMiddleware = async (
   request: Request,
@@ -22,7 +22,7 @@ export const nameAlreadyExistsMiddleware = async (
   const foundMovieByName: IMovie = queryResult.rows[0];
 
   if (foundMovieByName) {
-    const error: string = "Movie name already exists!";
+    const error: string = `Movie name ${name} already exists!`;
     return response.status(409).json({ error });
   }
 
@@ -49,7 +49,7 @@ export const idAlreadyExistsMiddleware = async (
   const foundMovieById: IMovie = queryResult.rows[0];
 
   if (!foundMovieById) {
-    const error: string = "Movie not found!";
+    const error: string = 'Movie not found!';
     return response.status(404).json({ error });
   }
 

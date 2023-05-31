@@ -1,27 +1,21 @@
-import { Request, Response } from "express";
-import { IMovie, TMovieCreate, TMovieResult } from "./interfaces";
-import { QueryConfig } from "pg";
-import { client } from "./database";
-import format from "pg-format";
+import { Request, Response } from 'express';
+import { IMovie, TMovieCreate, TMovieResult } from './interfaces';
+import { QueryConfig, QueryResult } from 'pg';
+import { client } from './database';
+import format from 'pg-format';
 
 //CREATE MOVIE:
 export const insertQueryCreateMovie = async (request: Request, response: Response): Promise<Response> => {
-  const { foundMovieByName } = response.locals;
+  // const { foundMovieByName } = response.locals;
   const requestBody: TMovieCreate = request.body;
 
-  const queryString: string = `
-    INSERT INTO "movies"("name", "category", "duration", "price")
-    VALUES ($1, $2, $3, $4)
-    RETURNING *;
-  `;
+  const queryFormat: string = format(
+    'INSERT INTO movies (%I) VALUES (%L) RETURNING *;',
+    Object.keys(requestBody),
+    Object.values(requestBody)
+  );
 
-  const queryConfig: QueryConfig = {
-    text: queryString,
-    values: Object.values(requestBody),
-  };
-
-  const queryResult: TMovieResult = await client.query(queryConfig);
-
+  const queryResult: TMovieResult = await client.query(queryFormat);
   const newMovie: IMovie = queryResult.rows[0];
 
   return response.status(201).json(newMovie);
@@ -29,11 +23,32 @@ export const insertQueryCreateMovie = async (request: Request, response: Respons
 
 //READ ALL MOVIES:
 export const selectQueryReadAllMovies = async (request: Request, response: Response): Promise<Response> => {
-  const queryString: string = `
-    SELECT * FROM "movies";
-  `;
-  const queryResult: TMovieResult = await client.query(queryString);
+  const { category } = request.query;
 
+  if (category === 'Animação') {
+    const queryTemplate: string = `
+    SELECT * FROM movies WHERE category = $1;
+`;
+
+    const queryConfig: QueryConfig = {
+      text: queryTemplate,
+      values: [category],
+    };
+
+    const queryResult: QueryResult = await client.query(queryConfig);
+
+    if (queryResult.rowCount > 0) {
+      const moviesByCategory: IMovie[] = queryResult.rows;
+
+      return response.status(200).json(moviesByCategory);
+    }
+  }
+
+  const queryString: string = `
+   SELECT * FROM "movies" ORDER BY id;
+  `;
+
+  const queryResult: TMovieResult = await client.query(queryString);
   const allMovies: IMovie[] = queryResult.rows;
 
   return response.status(200).json(allMovies);
@@ -96,23 +111,3 @@ export const deleteMovie = async (request: Request, response: Response): Promise
 
   return response.status(204).json();
 };
-
-//READ MOVIE BY ID:
-// const { id } = request.params;
-
-// const queryString: string = `
-//   SELECT * FROM "movies" WHERE id= ${id};
-// `;
-// const queryResult: TMovieResult = await client.query(queryString);
-
-// const movieById: IMovie = queryResult.rows[0];
-
-// const findProductById: IMovie | undefined = queryResult.rows.find(
-//   (movie: IMovie): boolean => movie.id === movieById.id
-// );
-// console.log(findProductById);
-
-// if (!findProductById) {
-//   const error: string = "Movie not found!";
-//   return response.status(404).json({ error });
-// }

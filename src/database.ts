@@ -1,5 +1,5 @@
-import { Client } from "pg";
-import "dotenv/config";
+import { Client } from 'pg';
+import 'dotenv/config';
 
 export const client: Client = new Client({
   user: process.env.DB_USER,
@@ -11,5 +11,5 @@ export const client: Client = new Client({
 
 export const startDatabase = async (): Promise<void> => {
   await client.connect();
-  console.log("Database connected");
+  console.log('Database connected');
 };

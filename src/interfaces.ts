@@ -1,4 +1,4 @@
-import { QueryResult } from "pg";
+import { QueryResult } from 'pg';
 
 export interface IMovie {
   id: number;
@@ -8,6 +8,6 @@ export interface IMovie {
   price: number;
 }
 
-export type TMovieCreate = Omit<IMovie, "id">;
+export type TMovieCreate = Omit<IMovie, 'id'>;
 
 export type TMovieResult = QueryResult<IMovie>;
